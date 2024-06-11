@@ -2,7 +2,6 @@ import { useSetModalState } from '@/hooks/commonHooks';
 import {
   useFetchFlow,
   useFetchFlowTemplates,
-  useRunFlow,
   useSetFlow,
 } from '@/hooks/flow-hooks';
 import { useFetchLlmList } from '@/hooks/llmHooks';
@@ -15,9 +14,9 @@ import React, {
   useState,
 } from 'react';
 import { Node, Position, ReactFlowInstance } from 'reactflow';
-import { v4 as uuidv4 } from 'uuid';
 // import { shallow } from 'zustand/shallow';
 import { useDebounceEffect } from 'ahooks';
+import { humanId } from 'human-id';
 import { useParams } from 'umi';
 import useGraphStore, { RFState } from './store';
 import { buildDslComponentsByGraph } from './utils';
@@ -79,7 +78,7 @@ export const useHandleDrop = () => {
         y: event.clientY,
       });
       const newNode = {
-        id: uuidv4(),
+        id: `${type}:${humanId()}`,
         type: 'textUpdater',
         position: position || {
           x: 0,
@@ -215,20 +214,4 @@ export const useFetchDataOnMount = () => {
 
 export const useFlowIsFetching = () => {
   return useIsFetching({ queryKey: ['flowDetail'] }) > 0;
-};
-
-export const useRunGraph = () => {
-  const { data } = useFetchFlow();
-  const { runFlow } = useRunFlow();
-  const { id } = useParams();
-  const { nodes, edges } = useGraphStore((state) => state);
-  const runGraph = useCallback(() => {
-    const dslComponents = buildDslComponentsByGraph(nodes, edges);
-    runFlow({
-      id: id!!,
-      dsl: { ...data.dsl, components: dslComponents },
-    });
-  }, [nodes, edges, runFlow, id, data]);
-
-  return { runGraph };
 };
