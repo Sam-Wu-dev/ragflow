@@ -29,4 +29,12 @@ services:
       - HF_ENDPOINT=https://huggingface.co
     networks:
       - ragflow
+      - LLM-network
     restart: always
+
+networks:
+  ragflow:
+    driver: bridge
+  LLM-network:
+    # If the network is external, you need to specify it as external
+    external: true
