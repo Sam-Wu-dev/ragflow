@@ -13,12 +13,19 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import { Node, Position, ReactFlowInstance } from 'reactflow';
+import { Connection, Node, Position, ReactFlowInstance } from 'reactflow';
 // import { shallow } from 'zustand/shallow';
+import { variableEnabledFieldMap } from '@/constants/chat';
+import {
+  ModelVariableType,
+  settledModelVariableMap,
+} from '@/constants/knowledge';
+import { Variable } from '@/interfaces/database/chat';
 import { useDebounceEffect } from 'ahooks';
+import { FormInstance } from 'antd';
 import { humanId } from 'human-id';
 import { useParams } from 'umi';
-import { Operator } from './constant';
+import { NodeMap, Operator, RestrictedUpstreamMap } from './constant';
 import useGraphStore, { RFState } from './store';
 import { buildDslComponentsByGraph } from './utils';
 
@@ -80,7 +87,7 @@ export const useHandleDrop = () => {
       });
       const newNode = {
         id: `${type}:${humanId()}`,
-        type: 'ragNode',
+        type: NodeMap[type as Operator] || 'ragNode',
         position: position || {
           x: 0,
           y: 0,
@@ -162,7 +169,7 @@ export const useWatchGraphChange = () => {
   const edges = useGraphStore((state) => state.edges);
   useDebounceEffect(
     () => {
-      console.info('useDebounceEffect');
+      // console.info('useDebounceEffect');
     },
     [nodes, edges],
     {
@@ -217,4 +224,49 @@ export const useFetchDataOnMount = () => {
 
 export const useFlowIsFetching = () => {
   return useIsFetching({ queryKey: ['flowDetail'] }) > 0;
+};
+
+export const useSetLlmSetting = (form?: FormInstance) => {
+  const initialLlmSetting = undefined;
+
+  useEffect(() => {
+    const switchBoxValues = Object.keys(variableEnabledFieldMap).reduce<
+      Record<string, boolean>
+    >((pre, field) => {
+      pre[field] =
+        initialLlmSetting === undefined
+          ? true
+          : !!initialLlmSetting[
+              variableEnabledFieldMap[
+                field as keyof typeof variableEnabledFieldMap
+              ] as keyof Variable
+            ];
+      return pre;
+    }, {});
+    const otherValues = settledModelVariableMap[ModelVariableType.Precise];
+    form?.setFieldsValue({ ...switchBoxValues, ...otherValues });
+  }, [form, initialLlmSetting]);
+};
+
+export const useValidateConnection = () => {
+  const { edges, getOperatorTypeFromId } = useGraphStore((state) => state);
+  // restricted lines cannot be connected successfully.
+  const isValidConnection = useCallback(
+    (connection: Connection) => {
+      // limit there to be only one line between two nodes
+      const hasLine = edges.some(
+        (x) => x.source === connection.source && x.target === connection.target,
+      );
+
+      const ret =
+        !hasLine &&
+        RestrictedUpstreamMap[
+          getOperatorTypeFromId(connection.source) as Operator
+        ]?.every((x) => x !== getOperatorTypeFromId(connection.target));
+      return ret;
+    },
+    [edges, getOperatorTypeFromId],
+  );
+
+  return isValidConnection;
 };

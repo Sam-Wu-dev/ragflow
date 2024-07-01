@@ -4,10 +4,14 @@ import { useEffect } from 'react';
 import { Node } from 'reactflow';
 import AnswerForm from '../answer-form';
 import BeginForm from '../begin-form';
+import CategorizeForm from '../categorize-form';
 import { Operator } from '../constant';
 import GenerateForm from '../generate-form';
 import { useHandleFormValuesChange } from '../hooks';
+import MessageForm from '../message-form';
+import RelevantForm from '../relevant-form';
 import RetrievalForm from '../retrieval-form';
+import RewriteQuestionForm from '../rewrite-question-form';
 
 interface IProps {
   node?: Node;
@@ -18,6 +22,10 @@ const FormMap = {
   [Operator.Retrieval]: RetrievalForm,
   [Operator.Generate]: GenerateForm,
   [Operator.Answer]: AnswerForm,
+  [Operator.Categorize]: CategorizeForm,
+  [Operator.Message]: MessageForm,
+  [Operator.Relevant]: RelevantForm,
+  [Operator.RewriteQuestion]: RewriteQuestionForm,
 };
 
 const FlowDrawer = ({
@@ -51,6 +59,7 @@ const FlowDrawer = ({
         <OperatorForm
           onValuesChange={handleValuesChange}
           form={form}
+          node={node}
         ></OperatorForm>
       )}
     </Drawer>

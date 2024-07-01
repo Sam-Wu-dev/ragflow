@@ -27,6 +27,7 @@ services:
     environment:
       - TZ=${TIMEZONE}
       - HF_ENDPOINT=https://huggingface.co
+      - MACOS=${MACOS}
     networks:
       - ragflow
       - LLM-network

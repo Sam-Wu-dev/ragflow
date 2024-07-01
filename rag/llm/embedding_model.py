@@ -15,7 +15,7 @@
 #
 import re
 from typing import Optional
-
+import  threading
 import requests
 from huggingface_hub import snapshot_download
 from zhipuai import ZhipuAI
@@ -45,7 +45,7 @@ class Base(ABC):
 
 class DefaultEmbedding(Base):
     _model = None
-
+    _model_lock = threading.Lock()
     def __init__(self, key, model_name, **kwargs):
         """
         If you have trouble downloading HuggingFace models, -_^ this might help!!
@@ -59,17 +59,20 @@ class DefaultEmbedding(Base):
 
         """
         if not DefaultEmbedding._model:
-            try:
-                self._model = FlagModel(os.path.join(get_home_cache_dir(), re.sub(r"^[a-zA-Z]+/", "", model_name)),
-                                        query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
-                                        use_fp16=torch.cuda.is_available())
-            except Exception as e:
-                model_dir = snapshot_download(repo_id="BAAI/bge-large-zh-v1.5",
-                                                local_dir=os.path.join(get_home_cache_dir(), re.sub(r"^[a-zA-Z]+/", "", model_name)),
-                                                local_dir_use_symlinks=False)
-                self._model = FlagModel(model_dir,
-                                        query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
-                                        use_fp16=torch.cuda.is_available())
+            with DefaultEmbedding._model_lock:
+                if not DefaultEmbedding._model:
+                    try:
+                        DefaultEmbedding._model = FlagModel(os.path.join(get_home_cache_dir(), re.sub(r"^[a-zA-Z]+/", "", model_name)),
+                                                            query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
+                                                            use_fp16=torch.cuda.is_available())
+                    except Exception as e:
+                        model_dir = snapshot_download(repo_id="BAAI/bge-large-zh-v1.5",
+                                                      local_dir=os.path.join(get_home_cache_dir(), re.sub(r"^[a-zA-Z]+/", "", model_name)),
+                                                      local_dir_use_symlinks=False)
+                        DefaultEmbedding._model = FlagModel(model_dir,
+                                                            query_instruction_for_retrieval="为这个句子生成表示以用于检索相关文章：",
+                                                            use_fp16=torch.cuda.is_available())
+        self._model = DefaultEmbedding._model
 
     def encode(self, texts: list, batch_size=32):
         texts = [truncate(t, 2048) for t in texts]
@@ -345,3 +348,23 @@ class InfinityEmbed(Base):
         # Using the internal tokenizer to encode the texts and get the total
         # number of tokens
         return self.encode([text])
+
+
+class MistralEmbed(Base):
+    def __init__(self, key, model_name="mistral-embed",
+                 base_url=None):
+        from mistralai.client import MistralClient
+        self.client = MistralClient(api_key=key)
+        self.model_name = model_name
+
+    def encode(self, texts: list, batch_size=32):
+        texts = [truncate(t, 8196) for t in texts]
+        res = self.client.embeddings(input=texts,
+                                            model=self.model_name)
+        return np.array([d.embedding for d in res.data]
+                        ), res.usage.total_tokens
+
+    def encode_queries(self, text):
+        res = self.client.embeddings(input=[truncate(text, 8196)],
+                                            model=self.model_name)
+        return np.array(res.data[0].embedding), res.usage.total_tokens

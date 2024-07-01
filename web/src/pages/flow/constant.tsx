@@ -1,5 +1,9 @@
 import {
+  BranchesOutlined,
+  DatabaseOutlined,
   MergeCellsOutlined,
+  MessageOutlined,
+  QuestionOutlined,
   RocketOutlined,
   SendOutlined,
   SlidersOutlined,
@@ -10,6 +14,10 @@ export enum Operator {
   Retrieval = 'Retrieval',
   Generate = 'Generate',
   Answer = 'Answer',
+  Categorize = 'Categorize',
+  Message = 'Message',
+  Relevant = 'Relevant',
+  RewriteQuestion = 'RewriteQuestion',
 }
 
 export const operatorIconMap = {
@@ -17,6 +25,10 @@ export const operatorIconMap = {
   [Operator.Generate]: MergeCellsOutlined,
   [Operator.Answer]: SendOutlined,
   [Operator.Begin]: SlidersOutlined,
+  [Operator.Categorize]: DatabaseOutlined,
+  [Operator.Message]: MessageOutlined,
+  [Operator.Relevant]: BranchesOutlined,
+  [Operator.RewriteQuestion]: QuestionOutlined,
 };
 
 export const operatorMap = {
@@ -26,6 +38,10 @@ export const operatorMap = {
   [Operator.Generate]: { description: 'Generate description' },
   [Operator.Answer]: { description: 'Answer description' },
   [Operator.Begin]: { description: 'Begin description' },
+  [Operator.Categorize]: { description: 'Categorize description' },
+  [Operator.Message]: { description: 'Message description' },
+  [Operator.Relevant]: { description: 'BranchesOutlined description' },
+  [Operator.RewriteQuestion]: { description: 'RewriteQuestion description' },
 };
 
 export const componentMenuList = [
@@ -40,6 +56,22 @@ export const componentMenuList = [
   {
     name: Operator.Answer,
     description: operatorMap[Operator.Answer].description,
+  },
+  {
+    name: Operator.Categorize,
+    description: operatorMap[Operator.Categorize].description,
+  },
+  {
+    name: Operator.Message,
+    description: operatorMap[Operator.Message].description,
+  },
+  {
+    name: Operator.Relevant,
+    description: operatorMap[Operator.Relevant].description,
+  },
+  {
+    name: Operator.RewriteQuestion,
+    description: operatorMap[Operator.RewriteQuestion].description,
   },
 ];
 
@@ -72,4 +104,44 @@ export const initialFormValuesMap = {
   [Operator.Retrieval]: initialRetrievalValues,
   [Operator.Generate]: initialGenerateValues,
   [Operator.Answer]: {},
+  [Operator.Categorize]: {},
+};
+
+export const CategorizeAnchorPointPositions = [
+  { top: 1, right: 34 },
+  { top: 8, right: 18 },
+  { top: 15, right: 10 },
+  { top: 24, right: 4 },
+  { top: 31, right: 1 },
+  { top: 38, right: -2 },
+  { top: 62, right: -2 }, //bottom
+  { top: 71, right: 1 },
+  { top: 79, right: 6 },
+  { top: 86, right: 12 },
+  { top: 91, right: 20 },
+  { top: 98, right: 34 },
+];
+
+// key is the source of the edge, value is the target of the edge
+// no connection lines are allowed between key and value
+export const RestrictedUpstreamMap = {
+  [Operator.Begin]: [],
+  [Operator.Categorize]: [Operator.Begin, Operator.Categorize, Operator.Answer],
+  [Operator.Answer]: [],
+  [Operator.Retrieval]: [],
+  [Operator.Generate]: [],
+  [Operator.Message]: [],
+  [Operator.Relevant]: [],
+  [Operator.RewriteQuestion]: [],
+};
+
+export const NodeMap = {
+  [Operator.Begin]: 'beginNode',
+  [Operator.Categorize]: 'categorizeNode',
+  [Operator.Retrieval]: 'ragNode',
+  [Operator.Generate]: 'ragNode',
+  [Operator.Answer]: 'ragNode',
+  [Operator.Message]: 'ragNode',
+  [Operator.Relevant]: 'ragNode',
+  [Operator.RewriteQuestion]: 'ragNode',
 };

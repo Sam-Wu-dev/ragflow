@@ -1,5 +1,6 @@
 import type {} from '@redux-devtools/extension';
 import { humanId } from 'human-id';
+import lodashSet from 'lodash/set';
 import {
   Connection,
   Edge,
@@ -33,12 +34,18 @@ export type RFState = {
   updateNodeForm: (nodeId: string, values: any) => void;
   onSelectionChange: OnSelectionChangeFunc;
   addNode: (nodes: Node) => void;
-  getNode: (id: string) => Node | undefined;
+  getNode: (id?: string | null) => Node<NodeData> | undefined;
+  addEdge: (connection: Connection) => void;
+  getEdge: (id: string) => Edge | undefined;
+  deletePreviousEdgeOfClassificationNode: (connection: Connection) => void;
   duplicateNode: (id: string) => void;
   deleteEdge: () => void;
   deleteEdgeById: (id: string) => void;
   deleteNodeById: (id: string) => void;
+  deleteEdgeBySourceAndSourceHandle: (connection: Partial<Connection>) => void;
   findNodeByName: (operatorName: Operator) => Node | undefined;
+  updateMutableNodeFormItem: (id: string, field: string, value: any) => void;
+  getOperatorTypeFromId: (id?: string | null) => string | undefined;
 };
 
 // this is our useStore hook that we can use in our components to get parts of the store and call actions
@@ -63,6 +70,7 @@ const useGraphStore = create<RFState>()(
         set({
           edges: addEdge(connection, get().edges),
         });
+        get().deletePreviousEdgeOfClassificationNode(connection);
       },
       onSelectionChange: ({ nodes, edges }: OnSelectionChangeParams) => {
         set({
@@ -79,9 +87,41 @@ const useGraphStore = create<RFState>()(
       addNode: (node: Node) => {
         set({ nodes: get().nodes.concat(node) });
       },
-      getNode: (id: string) => {
+      getNode: (id?: string | null) => {
         return get().nodes.find((x) => x.id === id);
       },
+      getOperatorTypeFromId: (id?: string | null) => {
+        return get().getNode(id)?.data?.label;
+      },
+      addEdge: (connection: Connection) => {
+        set({
+          edges: addEdge(connection, get().edges),
+        });
+        get().deletePreviousEdgeOfClassificationNode(connection);
+      },
+      getEdge: (id: string) => {
+        return get().edges.find((x) => x.id === id);
+      },
+      deletePreviousEdgeOfClassificationNode: (connection: Connection) => {
+        // Delete the edge on the classification node anchor when the anchor is connected to other nodes
+        const { edges, getOperatorTypeFromId } = get();
+        if (getOperatorTypeFromId(connection.source) === Operator.Categorize) {
+          const previousEdge = edges.find(
+            (x) =>
+              x.source === connection.source &&
+              x.sourceHandle === connection.sourceHandle &&
+              x.target !== connection.target,
+          );
+          if (previousEdge) {
+            set({
+              edges: edges.filter((edge) => edge !== previousEdge),
+            });
+          }
+        }
+      },
+      // addOnlyOneEdgeBetweenTwoNodes: (connection: Connection) => {
+
+      // },
       duplicateNode: (id: string) => {
         const { getNode, addNode } = get();
         const node = getNode(id);
@@ -113,6 +153,19 @@ const useGraphStore = create<RFState>()(
           edges: edges.filter((edge) => edge.id !== id),
         });
       },
+      deleteEdgeBySourceAndSourceHandle: ({
+        source,
+        sourceHandle,
+      }: Partial<Connection>) => {
+        const { edges } = get();
+        const nextEdges = edges.filter(
+          (edge) =>
+            edge.source !== source || edge.sourceHandle !== sourceHandle,
+        );
+        set({
+          edges: nextEdges,
+        });
+      },
       deleteNodeById: (id: string) => {
         const { nodes, edges } = get();
         set({
@@ -135,6 +188,13 @@ const useGraphStore = create<RFState>()(
             return node;
           }),
         });
+      },
+      updateMutableNodeFormItem: (id: string, field: string, value: any) => {
+        const { nodes } = get();
+        const idx = nodes.findIndex((x) => x.id === id);
+        if (idx) {
+          lodashSet(nodes, [idx, 'data', 'form', field], value);
+        }
       },
     }),
     { name: 'graph' },
