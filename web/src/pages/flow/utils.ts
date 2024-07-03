@@ -1,33 +1,52 @@
 import { DSLComponents } from '@/interfaces/database/flow';
 import { removeUselessFieldsFromValues } from '@/utils/form';
 import dagre from 'dagre';
+import { humanId } from 'human-id';
 import { curry, isEmpty } from 'lodash';
 import pipe from 'lodash/fp/pipe';
-import { Edge, MarkerType, Node, Position } from 'reactflow';
+import { Edge, Node, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
 import { NodeMap, Operator, initialFormValuesMap } from './constant';
-import { NodeData } from './interface';
+import { ICategorizeItemResult, NodeData } from './interface';
 
 const buildEdges = (
   operatorIds: string[],
   currentId: string,
   allEdges: Edge[],
   isUpstream = false,
+  componentName: string,
+  nodeParams: Record<string, unknown>,
 ) => {
   operatorIds.forEach((cur) => {
     const source = isUpstream ? cur : currentId;
     const target = isUpstream ? currentId : cur;
     if (!allEdges.some((e) => e.source === source && e.target === target)) {
-      allEdges.push({
+      const edge: Edge = {
         id: uuidv4(),
         label: '',
         // type: 'step',
         source: source,
         target: target,
-        markerEnd: {
-          type: MarkerType.Arrow,
-        },
-      });
+        // markerEnd: {
+        //   type: MarkerType.ArrowClosed,
+        //   color: 'rgb(157 149 225)',
+        //   width: 20,
+        //   height: 20,
+        // },
+      };
+      if (componentName === Operator.Categorize && !isUpstream) {
+        const categoryDescription =
+          nodeParams.category_description as ICategorizeItemResult;
+
+        const name = Object.keys(categoryDescription).find(
+          (x) => categoryDescription[x].to === target,
+        );
+
+        if (name) {
+          edge.sourceHandle = name;
+        }
+      }
+      allEdges.push(edge);
     }
   });
 };
@@ -39,22 +58,22 @@ export const buildNodesAndEdgesFromDSLComponents = (data: DSLComponents) => {
   Object.entries(data).forEach(([key, value]) => {
     const downstream = [...value.downstream];
     const upstream = [...value.upstream];
+    const { component_name: componentName, params } = value.obj;
     nodes.push({
       id: key,
       type: NodeMap[value.obj.component_name as Operator] || 'ragNode',
       position: { x: 0, y: 0 },
       data: {
-        label: value.obj.component_name,
-        params: value.obj.params,
-        downstream: downstream,
-        upstream: upstream,
+        label: componentName,
+        name: humanId(),
+        form: params,
       },
       sourcePosition: Position.Left,
       targetPosition: Position.Right,
     });
 
-    buildEdges(upstream, key, edges, true);
-    buildEdges(downstream, key, edges, false);
+    buildEdges(upstream, key, edges, true, componentName, params);
+    buildEdges(downstream, key, edges, false, componentName, params);
   });
 
   return { nodes, edges };
