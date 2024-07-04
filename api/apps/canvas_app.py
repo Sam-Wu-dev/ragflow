@@ -36,7 +36,7 @@ def templates():
 @login_required
 def canvas_list():
     return get_json_result(data=sorted([c.to_dict() for c in \
-                                 UserCanvasService.query(user_id=current_user.id)], key=lambda x: x["update_time"])
+                                 UserCanvasService.query(user_id=current_user.id)], key=lambda x: x["update_time"]*-1)
                            )
 
 
@@ -142,16 +142,19 @@ def run():
 
 
 @manager.route('/reset', methods=['POST'])
-@validate_request("canvas_id")
+@validate_request("id")
 @login_required
 def reset():
     req = request.json
     try:
-        user_canvas = UserCanvasService.get_by_id(req["canvas_id"])
-        canvas = Canvas(req["dsl"], current_user.id)
+        e, user_canvas = UserCanvasService.get_by_id(req["id"])
+        if not e:
+            return server_error_response("canvas not found.")
+
+        canvas = Canvas(json.dumps(user_canvas.dsl), current_user.id)
         canvas.reset()
         req["dsl"] = json.loads(str(canvas))
-        UserCanvasService.update_by_id(req["canvas_id"], dsl=req["dsl"])
+        UserCanvasService.update_by_id(req["id"], {"dsl": req["dsl"]})
         return get_json_result(data=req["dsl"])
     except Exception as e:
         return server_error_response(e)

@@ -1,8 +1,8 @@
+import { ReactComponent as NothingIcon } from '@/assets/svg/nothing.svg';
 import { IModalManagerChildrenProps } from '@/components/modal-manager';
 import { useTranslate } from '@/hooks/commonHooks';
 import { useFetchFlowTemplates } from '@/hooks/flow-hooks';
 import { useSelectItem } from '@/hooks/logicHooks';
-import { UserOutlined } from '@ant-design/icons';
 import {
   Avatar,
   Card,
@@ -79,8 +79,8 @@ const CreateFlowModal = ({
           <Input />
         </Form.Item>
       </Form>
-      <Title level={5}>Choose from templates</Title>
-      <Flex vertical gap={16}>
+      <Title level={5}>Create from templates</Title>
+      <Flex vertical gap={16} className={styles.templatesBox}>
         {list?.map((x) => (
           <Card
             key={x.id}
@@ -90,7 +90,11 @@ const CreateFlowModal = ({
             onClick={handleItemClick(x.id)}
           >
             <Space size={'middle'}>
-              <Avatar size={40} icon={<UserOutlined />} src={x.avatar} />
+              {x.avatar ? (
+                <Avatar size={40} icon={<NothingIcon />} src={x.avatar} />
+              ) : (
+                <NothingIcon width={40} height={30} />
+              )}
               <b>{x.title}</b>
             </Space>
             <p>{x.description}</p>

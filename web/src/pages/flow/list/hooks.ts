@@ -11,6 +11,11 @@ import { useNavigate } from 'umi';
 // import dslJson from '../../../../../dls.json';
 // import customerServiceBase from '../../../../../graph/test/dsl_examples/customer_service.json';
 // import customerService from '../customer_service.json';
+// import interpreterBase from '../../../../../graph/test/dsl_examples/interpreter.json';
+// import interpreter from '../interpreter.json';
+
+// import retrievalRelevantRewriteAndGenerateBase from '../../../../../graph/test/dsl_examples/retrieval_relevant_rewrite_and_generate.json';
+// import retrievalRelevantRewriteAndGenerate from '../retrieval_relevant_rewrite_and_generate.json';
 
 export const useFetchDataOnMount = () => {
   const { data, loading } = useFetchFlowList();
@@ -41,7 +46,10 @@ export const useSaveFlow = () => {
         title,
         dsl,
         // dsl: dslJson,
-        // dsl: { ...customerServiceBase, graph: customerService },
+        // dsl: {
+        //   ...retrievalRelevantRewriteAndGenerateBase,
+        //   graph: retrievalRelevantRewriteAndGenerate,
+        // },
       });
 
       if (ret?.retcode === 0) {
