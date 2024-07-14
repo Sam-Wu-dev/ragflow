@@ -80,7 +80,7 @@ def chat(dialog, messages, stream=True, **kwargs):
         llm = TenantLLMService.query(tenant_id=dialog.tenant_id, llm_name=dialog.llm_id)
         if not llm:
             raise LookupError("LLM(%s) not found" % dialog.llm_id)
-        max_tokens = 1024
+        max_tokens = 8192
     else:
         max_tokens = llm[0].max_tokens
     kbs = KnowledgebaseService.get_by_ids(dialog.kb_ids)
@@ -127,7 +127,7 @@ def chat(dialog, messages, stream=True, **kwargs):
                                         dialog.similarity_threshold,
                                         dialog.vector_similarity_weight,
                                         doc_ids=kwargs["doc_ids"].split(",") if "doc_ids" in kwargs else None,
-                                        top=1024, aggs=False, rerank_mdl=rerank_mdl)
+                                        top=dialog.top_k, aggs=False, rerank_mdl=rerank_mdl)
     knowledges = [ck["content_with_weight"] for ck in kbinfos["chunks"]]
     #self-rag
     if dialog.prompt_config.get("self_rag") and not relevant(dialog.tenant_id, dialog.llm_id, questions[-1], knowledges):
@@ -136,7 +136,7 @@ def chat(dialog, messages, stream=True, **kwargs):
                                         dialog.similarity_threshold,
                                         dialog.vector_similarity_weight,
                                         doc_ids=kwargs["doc_ids"].split(",") if "doc_ids" in kwargs else None,
-                                        top=1024, aggs=False, rerank_mdl=rerank_mdl)
+                                        top=dialog.top_k, aggs=False, rerank_mdl=rerank_mdl)
         knowledges = [ck["content_with_weight"] for ck in kbinfos["chunks"]]
 
     chat_logger.info(

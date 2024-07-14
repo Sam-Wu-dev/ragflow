@@ -57,8 +57,12 @@ const IconMap = {
   VolcEngine: 'volc_engine',
   BaiChuan: 'baichuan',
   Jina: 'jina',
-  MiniMax: 'minimax',
+  Minimax: 'chat-minimax',
   Mistral: 'mistral',
+  'Azure-OpenAI': 'azure',
+  Bedrock: 'bedrock',
+  Gemini:'gemini',
+  Groq: 'Groq',
 };
 
 const LlmIcon = ({ name }: { name: string }) => {

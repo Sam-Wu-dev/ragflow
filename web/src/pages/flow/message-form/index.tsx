@@ -27,7 +27,6 @@ const MessageForm = ({ onValuesChange, form }: IOperatorForm) => {
     <Form
       name="basic"
       {...formItemLayoutWithOutLabel}
-      initialValues={{ remember: true }}
       onValuesChange={onValuesChange}
       autoComplete="off"
       form={form}
@@ -38,7 +37,7 @@ const MessageForm = ({ onValuesChange, form }: IOperatorForm) => {
             {fields.map((field, index) => (
               <Form.Item
                 {...(index === 0 ? formItemLayout : formItemLayoutWithOutLabel)}
-                label={index === 0 ? t('message') : ''}
+                label={index === 0 ? t('msg') : ''}
                 required={false}
                 key={field.key}
               >

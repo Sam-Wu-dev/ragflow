@@ -31,7 +31,9 @@ EmbeddingModel = {
     "BaiChuan": BaiChuanEmbed,
     "Jina": JinaEmbed,
     "BAAI": DefaultEmbedding,
-    "Mistral": MistralEmbed
+    "Mistral": MistralEmbed,
+    "Bedrock": BedrockEmbed,
+    "Gemini":GeminiEmbed
 }
 
 
@@ -42,7 +44,8 @@ CvModel = {
     "Xinference": XinferenceCV,
     "Tongyi-Qianwen": QWenCV,
     "ZHIPU-AI": Zhipu4V,
-    "Moonshot": LocalCV
+    "Moonshot": LocalCV,
+    'Gemini':GeminiCV
 }
 
 
@@ -58,7 +61,10 @@ ChatModel = {
     "VolcEngine": VolcEngineChat,
     "BaiChuan": BaiChuanChat,
     "MiniMax": MiniMaxChat,
-    "Mistral": MistralChat
+    "Mistral": MistralChat,
+    'Gemini' : GeminiChat,
+    "Bedrock": BedrockChat,
+    "Groq": GroqChat
 }
 
 
@@ -66,4 +72,5 @@ RerankModel = {
     "BAAI": DefaultRerank,
     "Jina": JinaRerank,
     "Youdao": YoudaoRerank,
+    "Xinference": XInferenceRerank
 }

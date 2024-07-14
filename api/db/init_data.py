@@ -109,7 +109,7 @@ factory_infos = [{
     "name": "Ollama",
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
-        "status": "1",
+    "status": "1",
 }, {
     "name": "Moonshot",
     "logo": "",
@@ -123,8 +123,8 @@ factory_infos = [{
 }, {
     "name": "Xinference",
     "logo": "",
-    "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
-        "status": "1",
+    "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION,TEXT RE-RANK",
+    "status": "1",
 },{
     "name": "Youdao",
     "logo": "",
@@ -169,6 +169,22 @@ factory_infos = [{
     "name": "Azure-OpenAI",
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
+    "status": "1",
+},{
+    "name": "Bedrock",
+    "logo": "",
+    "tags": "LLM,TEXT EMBEDDING",
+    "status": "1",
+},{
+    "name": "Gemini",
+    "logo": "",
+    "tags": "LLM,TEXT EMBEDDING,IMAGE2TEXT",
+    "status": "1",
+},
+{
+    "name": "Groq",
+    "logo": "",
+    "tags": "LLM",
     "status": "1",
 }
     # {
@@ -730,7 +746,241 @@ def init_llm_factory():
             "max_tokens": 765,
             "model_type": LLMType.IMAGE2TEXT.value
         },
+        # ------------------------ Bedrock -----------------------
+        {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "ai21.j2-ultra-v1",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "ai21.j2-mid-v1",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.command-text-v14",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.command-light-text-v14",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.command-r-v1:0",
+            "tags": "LLM,CHAT,128k",
+            "max_tokens": 128 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.command-r-plus-v1:0",
+            "tags": "LLM,CHAT,128k",
+            "max_tokens": 128000,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-v2",
+            "tags": "LLM,CHAT,100k",
+            "max_tokens": 100 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-v2:1",
+            "tags": "LLM,CHAT,200k",
+            "max_tokens": 200 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-3-sonnet-20240229-v1:0",
+            "tags": "LLM,CHAT,200k",
+            "max_tokens": 200 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+            "tags": "LLM,CHAT,200k",
+            "max_tokens": 200 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-3-haiku-20240307-v1:0",
+            "tags": "LLM,CHAT,200k",
+            "max_tokens": 200 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-3-opus-20240229-v1:0",
+            "tags": "LLM,CHAT,200k",
+            "max_tokens": 200 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "anthropic.claude-instant-v1",
+            "tags": "LLM,CHAT,100k",
+            "max_tokens": 100 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "amazon.titan-text-express-v1",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "amazon.titan-text-premier-v1:0",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32 * 1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "amazon.titan-text-lite-v1",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "meta.llama2-13b-chat-v1",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "meta.llama2-70b-chat-v1",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "meta.llama3-8b-instruct-v1:0",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "meta.llama3-70b-instruct-v1:0",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "mistral.mistral-7b-instruct-v0:2",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "mistral.mixtral-8x7b-instruct-v0:1",
+            "tags": "LLM,CHAT,4k",
+            "max_tokens": 4096,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "mistral.mistral-large-2402-v1:0",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "mistral.mistral-small-2402-v1:0",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "amazon.titan-embed-text-v2:0",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8192,
+            "model_type": LLMType.EMBEDDING.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.embed-english-v3",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 2048,
+            "model_type": LLMType.EMBEDDING.value
+        }, {
+            "fid": factory_infos[16]["name"],
+            "llm_name": "cohere.embed-multilingual-v3",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 2048,
+            "model_type": LLMType.EMBEDDING.value
+        }, {
+            "fid": factory_infos[17]["name"],
+            "llm_name": "gemini-1.5-pro-latest",
+            "tags": "LLM,CHAT,1024K",
+            "max_tokens": 1024*1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[17]["name"],
+            "llm_name": "gemini-1.5-flash-latest",
+            "tags": "LLM,CHAT,1024K",
+            "max_tokens": 1024*1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[17]["name"],
+            "llm_name": "gemini-1.0-pro",
+            "tags": "LLM,CHAT,30K",
+            "max_tokens": 30*1024,
+            "model_type": LLMType.CHAT.value
+        }, {
+            "fid": factory_infos[17]["name"],
+            "llm_name": "gemini-1.0-pro-vision-latest",
+            "tags": "LLM,IMAGE2TEXT,12K",
+            "max_tokens": 12*1024,
+            "model_type": LLMType.IMAGE2TEXT.value
+        }, {
+            "fid": factory_infos[17]["name"],
+            "llm_name": "text-embedding-004",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 2048,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        # ------------------------ Groq -----------------------
+        {
+            "fid": factory_infos[18]["name"],
+            "llm_name": "gemma-7b-it",
+            "tags": "LLM,CHAT,15k",
+            "max_tokens": 8192,
 
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[18]["name"],
+            "llm_name": "gemma2-9b-it",
+            "tags": "LLM,CHAT,15k",
+            "max_tokens": 8192,
+
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[18]["name"],
+            "llm_name": "llama3-70b-8192",
+            "tags": "LLM,CHAT,6k",
+            "max_tokens": 8192,
+
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[18]["name"],
+            "llm_name": "llama3-8b-8192",
+            "tags": "LLM,CHAT,30k",
+            "max_tokens": 8192,
+
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[18]["name"],
+            "llm_name": "mixtral-8x7b-32768",
+            "tags": "LLM,CHAT,5k",
+            "max_tokens": 32768,
+
+            "model_type": LLMType.CHAT.value
+        }
     ]
     for info in factory_infos:
         try:

@@ -31,7 +31,7 @@ import numpy as np
 import asyncio
 from api.utils.file_utils import get_home_cache_dir
 from rag.utils import num_tokens_from_string, truncate
-
+import google.generativeai as genai 
 
 class Base(ABC):
     def __init__(self, key, model_name):
@@ -374,3 +374,72 @@ class MistralEmbed(Base):
         res = self.client.embeddings(input=[truncate(text, 8196)],
                                             model=self.model_name)
         return np.array(res.data[0].embedding), res.usage.total_tokens
+
+
+class BedrockEmbed(Base):
+    def __init__(self, key, model_name,
+                 **kwargs):
+        import boto3
+        self.bedrock_ak = eval(key).get('bedrock_ak', '')
+        self.bedrock_sk = eval(key).get('bedrock_sk', '')
+        self.bedrock_region = eval(key).get('bedrock_region', '')
+        self.model_name = model_name
+        self.client = boto3.client(service_name='bedrock-runtime', region_name=self.bedrock_region,
+                                   aws_access_key_id=self.bedrock_ak, aws_secret_access_key=self.bedrock_sk)
+
+    def encode(self, texts: list, batch_size=32):
+        texts = [truncate(t, 8196) for t in texts]
+        embeddings = []
+        token_count = 0
+        for text in texts:
+            if self.model_name.split('.')[0] == 'amazon':
+                body = {"inputText": text}
+            elif self.model_name.split('.')[0] == 'cohere':
+                body = {"texts": [text], "input_type": 'search_document'}
+
+            response = self.client.invoke_model(modelId=self.model_name, body=json.dumps(body))
+            model_response = json.loads(response["body"].read())
+            embeddings.extend([model_response["embedding"]])
+            token_count += num_tokens_from_string(text)
+
+        return np.array(embeddings), token_count
+
+    def encode_queries(self, text):
+
+        embeddings = []
+        token_count = num_tokens_from_string(text)
+        if self.model_name.split('.')[0] == 'amazon':
+            body = {"inputText": truncate(text, 8196)}
+        elif self.model_name.split('.')[0] == 'cohere':
+            body = {"texts": [truncate(text, 8196)], "input_type": 'search_query'}
+
+        response = self.client.invoke_model(modelId=self.model_name, body=json.dumps(body))
+        model_response = json.loads(response["body"].read())
+        embeddings.extend([model_response["embedding"]])
+
+        return np.array(embeddings), token_count
+
+class GeminiEmbed(Base):
+    def __init__(self, key, model_name='models/text-embedding-004',
+                 **kwargs):
+        genai.configure(api_key=key)
+        self.model_name = 'models/' + model_name
+        
+    def encode(self, texts: list, batch_size=32):
+        texts = [truncate(t, 2048) for t in texts]
+        token_count = sum(num_tokens_from_string(text) for text in texts)
+        result = genai.embed_content(
+            model=self.model_name,
+            content=texts,
+            task_type="retrieval_document",
+            title="Embedding of list of strings")
+        return np.array(result['embedding']),token_count
+    
+    def encode_queries(self, text):
+        result = genai.embed_content(
+            model=self.model_name,
+            content=truncate(text,2048),
+            task_type="retrieval_document",
+            title="Embedding of single string")
+        token_count = num_tokens_from_string(text)
+        return np.array(result['embedding']),token_count

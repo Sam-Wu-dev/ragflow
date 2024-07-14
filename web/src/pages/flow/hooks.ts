@@ -10,7 +10,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import { Connection, Node, Position, ReactFlowInstance } from 'reactflow';
+import { Connection, Edge, Node, Position, ReactFlowInstance } from 'reactflow';
 // import { shallow } from 'zustand/shallow';
 import { variableEnabledFieldMap } from '@/constants/chat';
 import {
@@ -25,6 +25,7 @@ import { FormInstance, message } from 'antd';
 import { humanId } from 'human-id';
 import trim from 'lodash/trim';
 import { useParams } from 'umi';
+import { v4 as uuid } from 'uuid';
 import {
   NodeMap,
   Operator,
@@ -37,8 +38,13 @@ import {
   initialRetrievalValues,
   initialRewriteQuestionValues,
 } from './constant';
+import { ICategorizeForm, IRelevantForm } from './interface';
 import useGraphStore, { RFState } from './store';
-import { buildDslComponentsByGraph, receiveMessageError } from './utils';
+import {
+  buildDslComponentsByGraph,
+  receiveMessageError,
+  replaceIdWithText,
+} from './utils';
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -249,7 +255,7 @@ const useSetGraphInfo = () => {
 };
 
 export const useFetchDataOnMount = () => {
-  const { loading, data } = useFetchFlow();
+  const { loading, data, refetch } = useFetchFlow();
   const setGraphInfo = useSetGraphInfo();
 
   useEffect(() => {
@@ -259,6 +265,10 @@ export const useFetchDataOnMount = () => {
   useWatchGraphChange();
 
   useFetchLlmList();
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   return { loading, flowDetail: data };
 };
@@ -297,12 +307,16 @@ export const useValidateConnection = () => {
   // restricted lines cannot be connected successfully.
   const isValidConnection = useCallback(
     (connection: Connection) => {
+      // node cannot connect to itself
+      const isSelfConnected = connection.target === connection.source;
+
       // limit the connection between two nodes to only one connection line in one direction
       const hasLine = edges.some(
         (x) => x.source === connection.source && x.target === connection.target,
       );
 
       const ret =
+        !isSelfConnected &&
         !hasLine &&
         RestrictedUpstreamMap[
           getOperatorTypeFromId(connection.source) as Operator
@@ -351,6 +365,7 @@ export const useSaveGraphBeforeOpeningDebugDrawer = (show: () => void) => {
   const { id } = useParams();
   const { saveGraph } = useSaveGraph();
   const { resetFlow } = useResetFlow();
+  const { refetch } = useFetchFlow();
   const { send } = useSendMessageWithSse(api.runCanvas);
   const handleRun = useCallback(async () => {
     const saveRet = await saveGraph();
@@ -364,11 +379,97 @@ export const useSaveGraphBeforeOpeningDebugDrawer = (show: () => void) => {
         if (receiveMessageError(sendRet)) {
           message.error(sendRet?.data?.retmsg);
         } else {
+          refetch();
           show();
         }
       }
     }
-  }, [saveGraph, resetFlow, id, send, show]);
+  }, [saveGraph, resetFlow, id, send, show, refetch]);
 
   return handleRun;
+};
+
+export const useReplaceIdWithText = (output: unknown) => {
+  const getNode = useGraphStore((state) => state.getNode);
+
+  const getNameById = (id?: string) => {
+    return getNode(id)?.data.name;
+  };
+
+  return replaceIdWithText(output, getNameById);
+};
+
+/**
+ *  monitor changes in the data.form field of the categorize and relevant operators
+ *  and then synchronize them to the edge
+ */
+export const useWatchNodeFormDataChange = () => {
+  const { getNode, nodes, setEdgesByNodeId } = useGraphStore((state) => state);
+
+  const buildCategorizeEdgesByFormData = useCallback(
+    (nodeId: string, form: ICategorizeForm) => {
+      // add
+      // delete
+      // edit
+      const categoryDescription = form.category_description;
+      const downstreamEdges = Object.keys(categoryDescription).reduce<Edge[]>(
+        (pre, sourceHandle) => {
+          const target = categoryDescription[sourceHandle]?.to;
+          if (target) {
+            pre.push({
+              id: uuid(),
+              source: nodeId,
+              target,
+              sourceHandle,
+            });
+          }
+
+          return pre;
+        },
+        [],
+      );
+
+      setEdgesByNodeId(nodeId, downstreamEdges);
+    },
+    [setEdgesByNodeId],
+  );
+
+  const buildRelevantEdgesByFormData = useCallback(
+    (nodeId: string, form: IRelevantForm) => {
+      const downstreamEdges = ['yes', 'no'].reduce<Edge[]>((pre, cur) => {
+        const target = form[cur as keyof IRelevantForm] as string;
+        if (target) {
+          pre.push({ id: uuid(), source: nodeId, target, sourceHandle: cur });
+        }
+
+        return pre;
+      }, []);
+
+      setEdgesByNodeId(nodeId, downstreamEdges);
+    },
+    [setEdgesByNodeId],
+  );
+
+  useEffect(() => {
+    nodes.forEach((node) => {
+      const currentNode = getNode(node.id);
+      const form = currentNode?.data.form ?? {};
+      const operatorType = currentNode?.data.label;
+      switch (operatorType) {
+        case Operator.Relevant:
+          buildRelevantEdgesByFormData(node.id, form as IRelevantForm);
+          break;
+        case Operator.Categorize:
+          buildCategorizeEdgesByFormData(node.id, form as ICategorizeForm);
+          break;
+        default:
+          break;
+      }
+    });
+  }, [
+    nodes,
+    buildCategorizeEdgesByFormData,
+    getNode,
+    buildRelevantEdgesByFormData,
+  ]);
 };

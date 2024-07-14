@@ -23,6 +23,7 @@ from ollama import Client
 from volcengine.maas.v2 import MaasService
 from rag.nlp import is_english
 from rag.utils import num_tokens_from_string
+from groq import Groq
 
 
 class Base(ABC):
@@ -530,6 +531,214 @@ class MistralChat(Base):
                 yield ans
 
         except openai.APIError as e:
+            yield ans + "\n**ERROR**: " + str(e)
+
+        yield total_tokens
+
+
+class BedrockChat(Base):
+
+    def __init__(self, key, model_name, **kwargs):
+        import boto3
+        self.bedrock_ak = eval(key).get('bedrock_ak', '')
+        self.bedrock_sk = eval(key).get('bedrock_sk', '')
+        self.bedrock_region = eval(key).get('bedrock_region', '')
+        self.model_name = model_name
+        self.client = boto3.client(service_name='bedrock-runtime', region_name=self.bedrock_region,
+                                   aws_access_key_id=self.bedrock_ak, aws_secret_access_key=self.bedrock_sk)
+
+    def chat(self, system, history, gen_conf):
+        from botocore.exceptions import ClientError
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_tokens"]:
+                del gen_conf[k]
+        if "max_tokens" in gen_conf:
+            gen_conf["maxTokens"] = gen_conf["max_tokens"]
+            _ = gen_conf.pop("max_tokens")
+        if "top_p" in gen_conf:
+            gen_conf["topP"] = gen_conf["top_p"]
+            _ = gen_conf.pop("top_p")
+
+        try:
+            # Send the message to the model, using a basic inference configuration.
+            response = self.client.converse(
+                modelId=self.model_name,
+                messages=history,
+                inferenceConfig=gen_conf
+            )
+            
+            # Extract and print the response text.
+            ans = response["output"]["message"]["content"][0]["text"]
+            return ans, num_tokens_from_string(ans)
+
+        except (ClientError, Exception) as e:
+            return f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}", 0
+
+    def chat_streamly(self, system, history, gen_conf):
+        from botocore.exceptions import ClientError
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_tokens"]:
+                del gen_conf[k]
+        if "max_tokens" in gen_conf:
+            gen_conf["maxTokens"] = gen_conf["max_tokens"]
+            _ = gen_conf.pop("max_tokens")
+        if "top_p" in gen_conf:
+            gen_conf["topP"] = gen_conf["top_p"]
+            _ = gen_conf.pop("top_p")
+
+        if self.model_name.split('.')[0] == 'ai21':
+            try:
+                response = self.client.converse(
+                    modelId=self.model_name,
+                    messages=history,
+                    inferenceConfig=gen_conf
+                )
+                ans = response["output"]["message"]["content"][0]["text"]
+                return ans, num_tokens_from_string(ans)
+
+            except (ClientError, Exception) as e:
+                return f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}", 0
+
+        ans = ""
+        try:
+            # Send the message to the model, using a basic inference configuration.
+            streaming_response = self.client.converse_stream(
+                modelId=self.model_name,
+                messages=history,
+                inferenceConfig=gen_conf
+            )
+
+            # Extract and print the streamed response text in real-time.
+            for resp in streaming_response["stream"]:
+                if "contentBlockDelta" in resp:
+                    ans += resp["contentBlockDelta"]["delta"]["text"]
+                    yield ans
+            
+        except (ClientError, Exception) as e:
+            yield ans + f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}"
+
+        yield num_tokens_from_string(ans)
+
+class GeminiChat(Base):
+
+    def __init__(self, key, model_name,base_url=None):
+        from google.generativeai import client,GenerativeModel 
+        
+        client.configure(api_key=key)
+        _client = client.get_default_generative_client()
+        self.model_name = 'models/' + model_name
+        self.model = GenerativeModel(model_name=self.model_name)
+        self.model._client = _client
+        
+    def chat(self,system,history,gen_conf):
+        if system:
+            history.insert(0, {"role": "user", "parts": system})
+        if 'max_tokens' in gen_conf:
+            gen_conf['max_output_tokens'] = gen_conf['max_tokens']
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_output_tokens"]:
+                del gen_conf[k]
+        for item in history:
+            if 'role' in item and item['role'] == 'assistant':
+                item['role'] = 'model'
+            if  'content' in item :
+                item['parts'] = item.pop('content')
+        
+        try:
+            response = self.model.generate_content(
+                history,
+                generation_config=gen_conf)
+            ans = response.text
+            return ans, response.usage_metadata.total_token_count
+        except Exception as e:
+            return "**ERROR**: " + str(e), 0
+
+    def chat_streamly(self, system, history, gen_conf):
+        if system:
+            history.insert(0, {"role": "user", "parts": system})
+        if 'max_tokens' in gen_conf:
+            gen_conf['max_output_tokens'] = gen_conf['max_tokens']
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_output_tokens"]:
+                del gen_conf[k]
+        for item in history:
+            if 'role' in item and item['role'] == 'assistant':
+                item['role'] = 'model'
+            if  'content' in item :
+                item['parts'] = item.pop('content')
+        ans = ""
+        try:
+            response = self.model.generate_content(
+                history,
+                generation_config=gen_conf,stream=True)
+            for resp in response:
+                ans += resp.text
+                yield ans
+
+        except Exception as e:
+            yield ans + "\n**ERROR**: " + str(e)
+
+        yield  response._chunks[-1].usage_metadata.total_token_count
+
+
+
+class GroqChat:
+    def __init__(self, key, model_name,base_url=''):
+        self.client = Groq(api_key=key)
+        self.model_name = model_name
+
+    def chat(self, system, history, gen_conf):
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_tokens"]:
+                del gen_conf[k]
+
+        ans = ""
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=history,
+                **gen_conf
+            )
+            ans = response.choices[0].message.content
+            if response.choices[0].finish_reason == "length":
+                ans += "...\nFor the content length reason, it stopped, continue?" if self.is_english(
+                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+            return ans, response.usage.total_tokens
+        except Exception as e:
+            return ans + "\n**ERROR**: " + str(e), 0
+
+    def chat_streamly(self, system, history, gen_conf):
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        for k in list(gen_conf.keys()):
+            if k not in ["temperature", "top_p", "max_tokens"]:
+                del gen_conf[k]
+        ans = ""
+        total_tokens = 0
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=history,
+                stream=True,
+                **gen_conf
+            )
+            for resp in response:
+                if not resp.choices or not resp.choices[0].delta.content:
+                    continue
+                ans += resp.choices[0].delta.content
+                total_tokens += 1
+                if resp.choices[0].finish_reason == "length":
+                    ans += "...\nFor the content length reason, it stopped, continue?" if self.is_english(
+                        [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+                yield ans
+
+        except Exception as e:
             yield ans + "\n**ERROR**: " + str(e)
 
         yield total_tokens

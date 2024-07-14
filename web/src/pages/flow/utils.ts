@@ -2,12 +2,13 @@ import { DSLComponents } from '@/interfaces/database/flow';
 import { removeUselessFieldsFromValues } from '@/utils/form';
 import dagre from 'dagre';
 import { humanId } from 'human-id';
-import { curry } from 'lodash';
+import { curry, sample } from 'lodash';
 import pipe from 'lodash/fp/pipe';
+import isObject from 'lodash/isObject';
 import { Edge, Node, Position } from 'reactflow';
 import { v4 as uuidv4 } from 'uuid';
-import { NodeMap, Operator } from './constant';
-import { ICategorizeItemResult, NodeData } from './interface';
+import { CategorizeAnchorPointPositions, NodeMap, Operator } from './constant';
+import { ICategorizeItemResult, IPosition, NodeData } from './interface';
 
 const buildEdges = (
   operatorIds: string[],
@@ -184,3 +185,50 @@ export const buildDslComponentsByGraph = (
 
 export const receiveMessageError = (res: any) =>
   res && (res?.response.status !== 200 || res?.data?.retcode !== 0);
+
+// Replace the id in the object with text
+export const replaceIdWithText = (
+  obj: Record<string, unknown> | unknown[] | unknown,
+  getNameById: (id?: string) => string | undefined,
+) => {
+  if (isObject(obj)) {
+    const ret: Record<string, unknown> | unknown[] = Array.isArray(obj)
+      ? []
+      : {};
+    Object.keys(obj).forEach((key) => {
+      const val = (obj as Record<string, unknown>)[key];
+      const text = typeof val === 'string' ? getNameById(val) : undefined;
+      (ret as Record<string, unknown>)[key] = text
+        ? text
+        : replaceIdWithText(val, getNameById);
+    });
+
+    return ret;
+  }
+
+  return obj;
+};
+
+export const isEdgeEqual = (previous: Edge, current: Edge) =>
+  previous.source === current.source &&
+  previous.target === current.target &&
+  previous.sourceHandle === current.sourceHandle;
+
+export const buildNewPositionMap = (
+  categoryDataKeys: string[],
+  indexesInUse: number[],
+) => {
+  return categoryDataKeys.reduce<Record<string, IPosition>>((pre, cur) => {
+    // take a coordinate
+    const effectiveIdxes = CategorizeAnchorPointPositions.map(
+      (x, idx) => idx,
+    ).filter((x) => !indexesInUse.some((y) => y === x));
+    const idx = sample(effectiveIdxes);
+    if (idx !== undefined) {
+      indexesInUse.push(idx);
+      pre[cur] = { ...CategorizeAnchorPointPositions[idx], idx };
+    }
+
+    return pre;
+  }, {});
+};
